@@ -1,7 +1,10 @@
+import 'package:eisenhower_matrix/screens/authentication/login_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../utils/validation_utils.dart';
+import '../../service/auth_service.dart';
+import '../../utils/validation_utils.dart';
+import 'otp_screen.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -16,6 +19,7 @@ class SignUpPageState extends State<SignUpPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
+  final AuthService _authService = AuthService();
   bool isTermsAgreed = false;
   bool isPasswordVisible = false;
   bool isConfirmPasswordVisible = false;
@@ -23,7 +27,8 @@ class SignUpPageState extends State<SignUpPage> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   Future<void> _launchURL() async {
-    final url = Uri.parse('https://sites.google.com/view/eisenhower-matrix-privacy/home');
+    final url = Uri.parse(
+        'https://sites.google.com/view/eisenhower-matrix-privacy/home');
     try {
       if (await launchUrl(url, mode: LaunchMode.inAppWebView)) {
       } else {
@@ -34,7 +39,6 @@ class SignUpPageState extends State<SignUpPage> {
       print(e);
     }
   }
-
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -161,9 +165,28 @@ class SignUpPageState extends State<SignUpPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: isTermsAgreed
-                        ? () {
+                        ? () async {
                             if (formKey.currentState!.validate()) {
-                              // Implement sign-up logic here
+                              try {
+                                await _authService.initiateSignUp(
+                                  username: usernameController.text,
+                                  email: emailController.text,
+                                  password: passwordController.text,
+                                );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => OtpScreen(
+                                          email: emailController.text)),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content:
+                                          Text('Error initiating signup: $e')),
+                                );
+                                print(e);
+                              }
                             }
                           }
                         : null,
@@ -178,7 +201,11 @@ class SignUpPageState extends State<SignUpPage> {
                       const Text("Already have an account? "),
                       GestureDetector(
                         onTap: () {
-                          // Navigate to login page
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginScreen(),
+                              ));
                         },
                         child: const Text(
                           "login",
