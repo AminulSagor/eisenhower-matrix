@@ -171,26 +171,42 @@ class CreateNotePageState extends State<CreateNotePage> {
                 Expanded(
                   flex: 1,
                   child: Align(
-                    alignment: Alignment.centerRight,
-                    child: PopupMenuButton<String>(
-                      icon: const Icon(Icons.category),
-                      onSelected: (value) {
-                        setState(() {
-                          selectedNoteType = value;
-                          debugPrint('Selected note type: $selectedNoteType');
-                        });
-                      },
-                      initialValue: selectedNoteType,
-                      itemBuilder: (BuildContext context) {
-                        return noteTypes.map((noteType) {
-                          return PopupMenuItem<String>(
-                            value: noteType,
-                            child: Text(noteType),
-                          );
-                        }).toList();
-                      },
-                    ),
-                  ),
+                      alignment: Alignment.centerRight,
+                      child: selectedNoteType == null
+                          ? PopupMenuButton<String>(
+                              icon: const Icon(Icons.category),
+                              onSelected: (value) {
+                                setState(() {
+                                  selectedNoteType = value;
+                                });
+                              },
+                              initialValue: selectedNoteType,
+                              itemBuilder: (BuildContext context) {
+                                return noteTypes.map((noteType) {
+                                  return PopupMenuItem<String>(
+                                    value: noteType,
+                                    child: Text(noteType),
+                                  );
+                                }).toList();
+                              },
+                            )
+                          : PopupMenuButton<String>(
+                              icon: const Icon(Icons.done),
+                              onSelected: (value) {
+                                setState(() {
+                                  selectedNoteType = value;
+                                });
+                              },
+                              initialValue: selectedNoteType,
+                              itemBuilder: (BuildContext context) {
+                                return noteTypes.map((noteType) {
+                                  return PopupMenuItem<String>(
+                                    value: noteType,
+                                    child: Text(noteType),
+                                  );
+                                }).toList();
+                              },
+                            )),
                 ),
               ],
             ),

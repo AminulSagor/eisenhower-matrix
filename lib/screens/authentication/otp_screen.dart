@@ -117,7 +117,7 @@ class OtpScreenState extends State<OtpScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/app_icon.png',
+              'assets/reminder.png',
               width: 500,
               height: 300,
             ),

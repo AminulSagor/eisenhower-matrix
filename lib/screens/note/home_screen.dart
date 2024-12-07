@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
+import '../../advertisment/banner_ad.dart';
+import '../../advertisment/interstitial_ad_helper.dart';
 import '../../model/note_model.dart';
 import '../../service/auth_service.dart';
 import '../../service/note_service.dart';
@@ -18,16 +19,19 @@ class HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   final AuthService _authService = AuthService();
   final NoteService _noteService = NoteService();
+  final InterstitialAdHelper _interstitialAdHelper = InterstitialAdHelper();
 
   List<Note> notes = [];
   List<Note> filteredNotes = [];
   bool isLoading = true;
   String errorMessage = '';
+  int filterSelectionCount = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchNotesFromBackend();
+    _interstitialAdHelper.loadInterstitialAd();
   }
 
   Future<void> _fetchNotesFromBackend() async {
@@ -57,6 +61,13 @@ class HomePageState extends State<HomePage> {
         filteredNotes = List.from(notes);
       } else {
         filteredNotes = notes.where((note) => note.type == filter).toList();
+      }
+
+      filterSelectionCount++;
+
+      // Show interstitial ad after every five selections
+      if (filterSelectionCount % 5 == 0) {
+        //_interstitialAdHelper.showInterstitialAd();
       }
     });
   }
@@ -197,6 +208,16 @@ class HomePageState extends State<HomePage> {
                         : ListView.builder(
                             itemCount: filteredNotes.length,
                             itemBuilder: (context, index) {
+                              // if ((index + 1) % 4 == 0 && index != 0) {
+                              //   return const Column(
+                              //     children: [
+                              //       ListTile(
+                              //         title: BannerAdWidget(),
+                              //       ),
+                              //       SizedBox(height: 10),
+                              //     ],
+                              //   );
+                              // }
                               final note = filteredNotes[index];
                               return GestureDetector(
                                 onLongPress: () =>
@@ -205,11 +226,10 @@ class HomePageState extends State<HomePage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => CreateNotePage(
-                                          note: note), // Pass the note object
+                                      builder: (context) =>
+                                          CreateNotePage(note: note),
                                     ),
                                   ).then((_) {
-                                    // Reload the notes after returning from the CreateNotePage
                                     _fetchNotesFromBackend();
                                   });
                                 },
@@ -325,14 +345,5 @@ class HomePageState extends State<HomePage> {
         );
       },
     );
-  }
-
-  String _formatDate(String createdAt) {
-    try {
-      final date = DateTime.parse(createdAt);
-      return DateFormat('MMMM dd').format(date);
-    } catch (e) {
-      return 'Unknown date';
-    }
   }
 }
