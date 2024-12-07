@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:eisenhower_matrix/screens/note/home_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../service/auth_service.dart';
@@ -51,24 +52,27 @@ class OtpScreenState extends State<OtpScreen> {
     final otp = _controllers.map((controller) => controller.text).join();
     if (otp.length == 6) {
       try {
-        // Call the verifyOtp method from AuthService
         await _authService.verifyOtp(email: widget.email, otp: otp);
 
-        if (!mounted) return;  // Ensure the widget is still in the tree before showing a Snackbar
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('OTP Verified Successfully!')),
         );
-        // Handle success (e.g., navigate to the next screen)
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const HomePage(),
+            ));
       } catch (e) {
-        if (!mounted) return;  // Ensure the widget is still in the tree before showing a Snackbar
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to verify OTP: $e')),
         );
       }
     } else {
-      if (!mounted) return;  // Ensure the widget is still in the tree before showing a Snackbar
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid 6-digit OTP.')),
@@ -84,16 +88,15 @@ class OtpScreenState extends State<OtpScreen> {
       });
       _startCountdown();
       try {
-        // Call the resendOtp method from AuthService
         await _authService.resendOtp(email: widget.email);
 
-        if (!mounted) return;  // Ensure the widget is still in the tree before showing a Snackbar
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('OTP resent successfully.')),
         );
       } catch (e) {
-        if (!mounted) return;  // Ensure the widget is still in the tree before showing a Snackbar
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to resend OTP: $e')),
@@ -109,10 +112,15 @@ class OtpScreenState extends State<OtpScreen> {
         title: const Text('Verify OTP'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.only(left: 16.0, right: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Image.asset(
+              'assets/app_icon.png',
+              width: 500,
+              height: 300,
+            ),
             const Text(
               'Enter the 6-digit OTP sent to your email',
               textAlign: TextAlign.center,

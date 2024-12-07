@@ -5,7 +5,7 @@ import '../../model/note_model.dart';
 import '../../service/note_service.dart';
 
 class CreateNotePage extends StatefulWidget {
-  final Note? note; // Nullable Note parameter for editing mode
+  final Note? note;
 
   const CreateNotePage({super.key, this.note});
 
@@ -30,7 +30,6 @@ class CreateNotePageState extends State<CreateNotePage> {
   void initState() {
     super.initState();
 
-    // If editing, populate fields with existing note data
     if (widget.note != null) {
       final note = widget.note!;
       titleController.text = note.title;
@@ -46,7 +45,6 @@ class CreateNotePageState extends State<CreateNotePage> {
     final title = titleController.text;
     final content = contentController.text;
 
-    // Ensure context is available
     final currentContext = context;
 
     if (title.isNotEmpty && content.isNotEmpty && selectedNoteType != null) {
@@ -56,7 +54,6 @@ class CreateNotePageState extends State<CreateNotePage> {
 
       try {
         if (widget.note == null) {
-          // Creating a new note
           final success = await NoteService().createNote(
             title: title,
             content: content,
@@ -85,7 +82,6 @@ class CreateNotePageState extends State<CreateNotePage> {
           );
 
           if (updatedNote != null) {
-            debugPrint('Note updated: $title');
             ScaffoldMessenger.of(currentContext).showSnackBar(
               const SnackBar(
                 content: Text('Note updated successfully!'),
@@ -117,13 +113,28 @@ class CreateNotePageState extends State<CreateNotePage> {
         });
       }
     } else {
-      debugPrint('All fields are required!');
-      ScaffoldMessenger.of(currentContext).showSnackBar(
-        const SnackBar(
-          content: Text('All fields are required!'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      if (title.isEmpty) {
+        ScaffoldMessenger.of(currentContext).showSnackBar(
+          const SnackBar(
+            content: Text('Title is required!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else if (content.isEmpty) {
+        ScaffoldMessenger.of(currentContext).showSnackBar(
+          const SnackBar(
+            content: Text('Note is required!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(currentContext).showSnackBar(
+          const SnackBar(
+            content: Text('Category is required!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -166,6 +177,7 @@ class CreateNotePageState extends State<CreateNotePage> {
                       onSelected: (value) {
                         setState(() {
                           selectedNoteType = value;
+                          debugPrint('Selected note type: $selectedNoteType');
                         });
                       },
                       initialValue: selectedNoteType,

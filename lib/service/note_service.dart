@@ -32,7 +32,7 @@ class NoteService {
       body: jsonEncode({
         'title': title,
         'content': content,
-        'type' : 'type',
+        'type' : type,
         'createdAt': createdAt,
       }),
     );
@@ -45,7 +45,6 @@ class NoteService {
   }
 
   Future<List<Note>> fetchNotes() async {
-    // Get the stored token
     final token = await TokenService().getToken();
     if (token == null) {
       throw Exception('User not authenticated');
@@ -55,12 +54,11 @@ class NoteService {
     final response = await http.get(
       url,
       headers: {
-        'Authorization': 'Bearer $token', // Include the token for authentication
+        'Authorization': 'Bearer $token',
       },
     );
 
     if (response.statusCode == 200) {
-      // Parse the response body into a list of Note objects
       List<dynamic> data = jsonDecode(response.body);
       return data.map((noteData) => Note.fromJson(noteData)).toList();
     } else {

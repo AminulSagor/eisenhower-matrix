@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import 'package:lottie/lottie.dart';
 import '../../model/note_model.dart';
 import '../../service/auth_service.dart';
 import '../../service/note_service.dart';
@@ -21,7 +21,6 @@ class HomePageState extends State<HomePage> {
 
   List<Note> notes = [];
   List<Note> filteredNotes = [];
-  String selectedFilter = 'New to Old';
   bool isLoading = true;
   String errorMessage = '';
 
@@ -38,9 +37,10 @@ class HomePageState extends State<HomePage> {
     });
     try {
       final fetchedNotes = await _noteService.fetchNotes();
+      fetchedNotes.sort((a, b) => b.id.compareTo(a.id));
       setState(() {
         notes = fetchedNotes;
-        filteredNotes = List.from(fetchedNotes); // Initialize filtered notes
+        filteredNotes = List.from(fetchedNotes);
         isLoading = false;
       });
     } catch (e) {
@@ -53,11 +53,8 @@ class HomePageState extends State<HomePage> {
 
   void _filterNotes(String filter) {
     setState(() {
-      selectedFilter = filter;
-      if (filter == 'New to Old') {
-        filteredNotes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      } else if (filter == 'Old to New') {
-        filteredNotes.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      if (filter == 'All') {
+        filteredNotes = List.from(notes);
       } else {
         filteredNotes = notes.where((note) => note.type == filter).toList();
       }
@@ -68,7 +65,10 @@ class HomePageState extends State<HomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CreateNotePage()),
-    );
+    ).then((_) {
+      // Reload the notes after returning from the CreateNotePage
+      _fetchNotesFromBackend();
+    });
   }
 
   Future<void> _logout() async {
@@ -85,7 +85,8 @@ class HomePageState extends State<HomePage> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Delete Note'),
-          content: Text('Are you sure you want to delete the note "${note.title}"?'),
+          content:
+              Text('Are you sure you want to delete the note "${note.title}"?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -114,8 +115,8 @@ class HomePageState extends State<HomePage> {
       final success = await _noteService.deleteNoteById(id);
       if (success) {
         setState(() {
-          notes.removeWhere((note) => note.id == id );
-          filteredNotes.removeWhere((note) => note.id == id );
+          notes.removeWhere((note) => note.id == id);
+          filteredNotes.removeWhere((note) => note.id == id);
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Note deleted successfully.')),
@@ -134,114 +135,145 @@ class HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Eisenhower Matrix'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : errorMessage.isNotEmpty
-            ? Center(child: Text(errorMessage))
-            : Column(
-          children: [
-            // Search Container
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      labelText: 'Search Notes',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (query) {
-                      setState(() {
-                        filteredNotes = notes
-                            .where((note) => note.title
-                            .toLowerCase()
-                            .contains(query.toLowerCase()))
-                            .toList();
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                IconButton(
-                  icon: const Icon(Icons.filter_list),
-                  onPressed: () {
-                    _showFilterDialog();
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // List of Notes
-            Expanded(
-              child: ListView.builder(
-                itemCount: filteredNotes.length,
-                itemBuilder: (context, index) {
-                  final note = filteredNotes[index];
-                  return GestureDetector(
-                    onLongPress: () => _deleteNoteConfirmation(note),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreateNotePage(note: note), // Pass the note object
-                        ),
-                      );
-                    },
-                    child: Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      child: ListTile(
-                        title: Text(note.title),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              note.content,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.black54),
-                            ),
-                            Text(
-                              note.type,
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                            Text(
-                              _formatDate(note.createdAt),
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+    return Stack(children: [
+      Scaffold(
+        appBar: AppBar(
+          title: const Text('Eisenhower Matrix'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _logout,
             ),
           ],
         ),
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(right: 24, bottom: 50),
-        child: FloatingActionButton(
-          onPressed: _addNewNote,
-          tooltip: 'Add Note',
-          backgroundColor: Colors.green,
-          child: const Icon(Icons.add),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Search Container
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        labelText: 'Search Notes',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (query) {
+                        setState(() {
+                          filteredNotes = notes
+                              .where((note) => note.title
+                                  .toLowerCase()
+                                  .contains(query.toLowerCase()))
+                              .toList();
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  IconButton(
+                    icon: const Icon(Icons.filter_list),
+                    onPressed: () {
+                      _showFilterDialog();
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // List of Notes
+              Expanded(
+                child: isLoading
+                    ? const SizedBox()
+                    : filteredNotes.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No notes available',
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: filteredNotes.length,
+                            itemBuilder: (context, index) {
+                              final note = filteredNotes[index];
+                              return GestureDetector(
+                                onLongPress: () =>
+                                    _deleteNoteConfirmation(note),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CreateNotePage(
+                                          note: note), // Pass the note object
+                                    ),
+                                  ).then((_) {
+                                    // Reload the notes after returning from the CreateNotePage
+                                    _fetchNotesFromBackend();
+                                  });
+                                },
+                                child: Card(
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  child: ListTile(
+                                    title: Text(note.title),
+                                    subtitle: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          note.content,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              color: Colors.black54),
+                                        ),
+                                        Text(
+                                          note.type,
+                                          style: const TextStyle(
+                                              fontSize: 12, color: Colors.grey),
+                                        ),
+                                        Text(
+                                          note.createdAt,
+                                          style: const TextStyle(
+                                              fontSize: 12, color: Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+            ],
+          ),
+        ),
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(right: 24, bottom: 50),
+          child: FloatingActionButton(
+            onPressed: _addNewNote,
+            tooltip: 'Add Note',
+            backgroundColor: Colors.green,
+            child: const Icon(Icons.add),
+          ),
         ),
       ),
-    );
+      if (isLoading)
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withOpacity(0.5), // Background overlay
+            child: Center(
+              child: Lottie.asset(
+                'assets/animations/loading_animation.json',
+                width: 300,
+                height: 300,
+              ),
+            ),
+          ),
+        ),
+    ]);
   }
 
   void _showFilterDialog() {
@@ -254,17 +286,10 @@ class HomePageState extends State<HomePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: const Text('New to Old'),
+                title: const Text('All'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _filterNotes('New to Old');
-                },
-              ),
-              ListTile(
-                title: const Text('Old to New'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _filterNotes('Old to New');
+                  _filterNotes('All');
                 },
               ),
               ListTile(

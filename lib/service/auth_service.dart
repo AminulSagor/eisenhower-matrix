@@ -46,9 +46,11 @@ class AuthService {
       throw Exception('Failed to verify OTP: ${response.body}');
     }
 
-    final responseData = jsonDecode(response.body);
-    // You can handle the token here
-    print("Token: ${responseData['token']}");
+    final responseData = jsonDecode(response.body);;
+    String accessToken = responseData['token'];
+
+    // Store the token
+    await _tokenService.storeToken(accessToken);
   }
 
   Future<void> resendOtp({required String email}) async {
@@ -64,7 +66,7 @@ class AuthService {
     }
   }
 
-  Future<bool> login({
+  Future<String> login({
     required String email,
     required String password,
   }) async {
@@ -78,9 +80,15 @@ class AuthService {
       }),
     );
 
-    if (response.statusCode != 201) {
+
+    if (response.statusCode != 201 && response.statusCode != 401) {
       final errorResponse = jsonDecode(response.body);
-      throw Exception(errorResponse['message'] ?? 'Login failed');
+      throw Exception(errorResponse['message'] ?? 'An error occurred during login');
+    }
+
+    if (response.statusCode == 401) {
+      final errorResponse = jsonDecode(response.body);
+      throw Exception(errorResponse['message'] ?? 'Invalid email or password');
     }
 
     final responseData = jsonDecode(response.body);
@@ -88,7 +96,7 @@ class AuthService {
 
     // Store the token
     await _tokenService.storeToken(accessToken);
-    return true;
+    return responseData['message'] ?? 'Login successful';
   }
 
   Future<void> logout() async {
